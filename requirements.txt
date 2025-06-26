@@ -1,8 +1,8 @@
-streamlit
-pandas
-numpy
-joblib
-scikit-learn
-xgboost
-lightgbm
-catboost
+streamlit>=1.25.0
+pandas>=1.5.0
+numpy>=1.21.0
+joblib>=1.2.0
+scikit-learn>=1.2.0
+xgboost>=1.7.0
+lightgbm>=3.3.0
+catboost>=1.2
