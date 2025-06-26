@@ -5,14 +5,14 @@ import numpy as np
 
 st.set_page_config(page_title="Age Group Predictor", layout="centered")
 
-# Load model
+# Load the trained model
 model = joblib.load("model.pkl")
 
 st.title("🧠 Age Group Predictor App")
-st.markdown("Enter the required health and lifestyle details:")
+st.markdown("Enter the required health and lifestyle details below:")
 
 # ----------------------------
-# Dropdown Inputs (with mapping)
+# Dropdown Inputs with Friendly Labels
 # ----------------------------
 
 gender = st.selectbox("Gender", ["Male", "Female"])
@@ -74,18 +74,18 @@ activity_code = activity_map[moderate_activity]
 # Numeric Inputs
 # ----------------------------
 weight = st.number_input("Weight (kg)", min_value=1.0, value=70.0)
-glucose = st.number_input("Glucose Level (mg/dL)", min_value=1.0, value=90.0)
+glucose_tolerance = st.number_input("Glucose Tolerance Test Result (LBXGLT)", min_value=1.0, value=90.0)
 insulin = st.number_input("Insulin Level (uU/mL)", min_value=0.0, value=80.0)
 bmi = st.number_input("BMI", min_value=10.0, value=25.0)
 age = st.number_input("Age (years)", min_value=1, value=45)
 
 # ----------------------------
-# DataFrame for Prediction
+# Prepare DataFrame for Model
 # ----------------------------
 input_df = pd.DataFrame([{
     "bmxwt": weight,
     "diq010": diabetes_code,
-    "lbxglu": glucose,
+    "lbxglt": glucose_tolerance,
     "paq605": activity_code,
     "riagendr": gender_code,
     "ridageyr": age,
@@ -98,19 +98,21 @@ input_df = pd.DataFrame([{
 # ----------------------------
 # Feature Engineering
 # ----------------------------
-input_df["glucose_insulin_ratio"] = input_df["lbxglu"] / (input_df["lbxin"] + 1)
+input_df["glucose_insulin_ratio"] = input_df["lbxglt"] / (input_df["lbxin"] + 1)
 input_df["bmi_log"] = np.log1p(input_df["bmxbmi"])
-input_df["glucose_high"] = (input_df["lbxglu"] > 125).astype(int)
+input_df["glucose_high"] = (input_df["lbxglt"] > 125).astype(int)
 input_df["bmi_high"] = (input_df["bmxbmi"] > 30).astype(int)
-input_df["diq010_missing"] = 0  # always provided
-input_df["paq605"] = input_df["paq605"].astype(str)  # needed for OneHotEncoder in your model
+input_df["diq010_missing"] = 0  # assume not missing
+
+# One-hot columns need to be strings if required by model (esp. for PAQ605)
+input_df["paq605"] = input_df["paq605"].astype(str)
 
 # ----------------------------
-# Prediction
+# Predict
 # ----------------------------
 if st.button("🎯 Predict Age Group"):
     try:
-        result = model.predict(input_df)[0]
-        st.success(f"Predicted Age Group: **{'Senior' if result == 1 else 'Adult'}**")
+        prediction = model.predict(input_df)[0]
+        st.success(f"Predicted Age Group: **{'Senior' if prediction == 1 else 'Adult'}**")
     except Exception as e:
-        st.error(f"Prediction failed: {e}")
+        st.error(f"❌ Prediction Failed: {e}")
