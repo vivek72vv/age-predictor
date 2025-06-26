@@ -5,16 +5,13 @@ import numpy as np
 
 st.set_page_config(page_title="Age Group Predictor", layout="centered")
 
-# Load the trained model
+# Load trained model
 model = joblib.load("model.pkl")
 
 st.title("🧠 Age Group Predictor App")
-st.markdown("Enter the required health and lifestyle details below:")
+st.markdown("Enter your health and lifestyle details:")
 
-# ----------------------------
-# Dropdown Inputs with Friendly Labels
-# ----------------------------
-
+# --------------- Dropdown Inputs with Mapping ---------------
 gender = st.selectbox("Gender", ["Male", "Female"])
 gender_code = 1 if gender == "Male" else 2
 
@@ -70,46 +67,35 @@ activity_map = {
 }
 activity_code = activity_map[moderate_activity]
 
-# ----------------------------
-# Numeric Inputs
-# ----------------------------
+# ------------------ Numeric Inputs ------------------
 weight = st.number_input("Weight (kg)", min_value=1.0, value=70.0)
-glucose_tolerance = st.number_input("Glucose Tolerance Test Result (LBXGLT)", min_value=1.0, value=90.0)
-insulin = st.number_input("Insulin Level (uU/mL)", min_value=0.0, value=80.0)
+glucose = st.number_input("Glucose Level (LBXGLU)", min_value=1.0, value=90.0)
+insulin = st.number_input("Insulin Level (LBXIN)", min_value=0.0, value=80.0)
 bmi = st.number_input("BMI", min_value=10.0, value=25.0)
 age = st.number_input("Age (years)", min_value=1, value=45)
 
-# ----------------------------
-# Prepare DataFrame for Model
-# ----------------------------
+# ------------------ DataFrame for Model ------------------
 input_df = pd.DataFrame([{
     "bmxwt": weight,
     "diq010": diabetes_code,
-    "lbxglt": glucose_tolerance,
-    "paq605": activity_code,
+    "lbxglu": glucose,
+    "lbxin": insulin,
+    "paq605": str(activity_code),  # if needed as string for OneHotEncoder
     "riagendr": gender_code,
     "ridageyr": age,
     "dmdeduc2": education_code,
     "dmdmartl": marital_code,
-    "bmxbmi": bmi,
-    "lbxin": insulin
+    "bmxbmi": bmi
 }])
 
-# ----------------------------
-# Feature Engineering
-# ----------------------------
-input_df["glucose_insulin_ratio"] = input_df["lbxglt"] / (input_df["lbxin"] + 1)
+# ------------------ Feature Engineering ------------------
+input_df["glucose_insulin_ratio"] = input_df["lbxglu"] / (input_df["lbxin"] + 1)
 input_df["bmi_log"] = np.log1p(input_df["bmxbmi"])
-input_df["glucose_high"] = (input_df["lbxglt"] > 125).astype(int)
+input_df["glucose_high"] = (input_df["lbxglu"] > 125).astype(int)
 input_df["bmi_high"] = (input_df["bmxbmi"] > 30).astype(int)
-input_df["diq010_missing"] = 0  # assume not missing
+input_df["diq010_missing"] = 0  # assume value always provided
 
-# One-hot columns need to be strings if required by model (esp. for PAQ605)
-input_df["paq605"] = input_df["paq605"].astype(str)
-
-# ----------------------------
-# Predict
-# ----------------------------
+# ------------------ Prediction ------------------
 if st.button("🎯 Predict Age Group"):
     try:
         prediction = model.predict(input_df)[0]
